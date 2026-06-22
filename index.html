@@ -292,7 +292,7 @@
     <!-- SCRIPT INLINE - MULTIPLAYER SYSTEM & GAMEPLAY LOGIC -->
     <script>
         // CONFIG
-        const SERVER_URL = "ws://localhost:3000";
+        const SERVER_URL = "https://tiny-heist-backend.onrender.com";
 
         // WEB AUDIO ENGINE - Synthesizer sounds
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1087,16 +1087,3 @@
     </script>
 </body>
 </html>
-```
-eof
-
-### Step-by-Step Instructions to Play:
-
-1. **Save files:** Put the code blocks into `package.json`, `server.js`, and `index.html` respectively in the same directory.
-2. **Install dependencies:** Run:
-   ```bash
-   npm install
-   ```
-3. **Launch local Node.js Server:** Run:
-   ```bash
-   node server.js
