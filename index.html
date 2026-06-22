@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Heist - Chaotic Co-Op Party Game</title>
+    <!-- Tailwind CSS (Included for layout styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #0d0f14;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        /* Scanline Overlay for retro monitor glow */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.06),
+                rgba(0, 255, 0, 0.02),
+                rgba(0, 0, 255, 0.06)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Screen Shake effect helper classes */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .screen-shake {
+            animation: shake 0.4s;
+            animation-iteration-count: infinite;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="scanlines"></div>
+
+    <!-- MAIN MENU CONTAINER -->
+    <div id="lobbyContainer" class="w-full max-w-4xl bg-gray-900 border-4 border-yellow-400 rounded-3xl p-6 shadow-2xl z-10 transition-all duration-300 transform scale-100 relative">
+        <!-- Floating title graphic -->
+        <div class="text-center mb-8 relative">
+            <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl transform -rotate-3 text-yellow-300 drop-shadow-[0_4px_0_rgba(0,0,0,1)] font-extrabold brand-font uppercase tracking-widest animate-bounce">
+                TINY HEIST!
+            </div>
+            <p class="text-gray-400 mt-6 text-lg">Work together, steal everything, don't trigger the alarm!</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+            <!-- Left Config -->
+            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl text-yellow-300 mb-4 font-bold"><i class="fa-solid fa-user-secret mr-2"></i>Thief Identity</h3>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2 text-gray-300">Nickname</label>
+                        <input type="text" id="nicknameInput" class="w-full px-4 py-3 bg-gray-950 border-2 border-gray-700 rounded-xl text-white font-bold focus:border-yellow-400 outline-none" value="SneakyBandit">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2 text-gray-300">Room Code (Leave same to join together)</label>
+                        <input type="text" id="roomInput" class="w-full px-4 py-3 bg-gray-950 border-2 border-gray-700 rounded-xl text-white font-bold focus:border-yellow-400 outline-none" value="TOON_HEIST">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2 text-gray-300">Suit Color Selection</label>
+                        <div class="flex gap-2">
+                            <button onclick="selectColor('#FF5555', this)" class="w-10 h-10 rounded-full border-4 border-white bg-[#FF5555] cursor-pointer color-btn"></button>
+                            <button onclick="selectColor('#38BDF8', this)" class="w-10 h-10 rounded-full border-2 border-transparent bg-[#38BDF8] cursor-pointer color-btn"></button>
+                            <button onclick="selectColor('#4ADE80', this)" class="w-10 h-10 rounded-full border-2 border-transparent bg-[#4ADE80] cursor-pointer color-btn"></button>
+                            <button onclick="selectColor('#FACC15', this)" class="w-10 h-10 rounded-full border-2 border-transparent bg-[#FACC15] cursor-pointer color-btn"></button>
+                            <button onclick="selectColor('#C084FC', this)" class="w-10 h-10 rounded-full border-2 border-transparent bg-[#C084FC] cursor-pointer color-btn"></button>
+                            <button onclick="selectColor('#FB923C', this)" class="w-10 h-10 rounded-full border-2 border-transparent bg-[#FB923C] cursor-pointer color-btn"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button id="btnJoin" class="flex-1 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg shadow-green-900/40">
+                        Connect & Ready up
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Lobby Players list -->
+            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl text-yellow-300 font-bold"><i class="fa-solid fa-users mr-2"></i>Caper Crew</h3>
+                        <span id="playerCounter" class="bg-gray-950 px-3 py-1 rounded-full text-xs text-yellow-400 font-bold border border-yellow-400">0/8 Playing</span>
+                    </div>
+
+                    <div id="lobbyPlayersList" class="space-y-2 h-64 overflow-y-auto pr-2 bg-gray-950 rounded-xl p-4 border border-gray-800">
+                        <div class="text-gray-500 text-center py-10">Enter room and join to see crew members ready...</div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex flex-col gap-2">
+                    <button id="btnStartGame" disabled class="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-gray-950 rounded-xl font-black text-xl tracking-wider uppercase transition-all opacity-50 cursor-not-allowed">
+                        START THE HEIST!
+                    </button>
+                    <span class="text-xs text-center text-gray-500">Only the Room Creator can start the game</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GAME SCREEN PANEL (Initially Hidden) -->
+    <div id="gameContainer" class="hidden w-full max-w-[1400px] flex flex-col lg:flex-row gap-4 h-[88vh] z-10">
+        <!-- Playfield Viewport Canvas Area -->
+        <div class="flex-1 bg-gray-950 border-4 border-gray-800 rounded-3xl overflow-hidden relative shadow-2xl flex flex-col">
+            <!-- Header bar -->
+            <div class="bg-gray-900 border-b-2 border-gray-800 px-6 py-3 flex justify-between items-center z-20">
+                <div class="flex items-center gap-4">
+                    <div class="text-xs text-gray-400 uppercase tracking-widest font-bold">Location</div>
+                    <div id="mapLocationLabel" class="text-yellow-400 font-black tracking-wide text-lg">LEMONADE STAND</div>
+                </div>
+
+                <!-- Live Alarm Meter -->
+                <div class="flex items-center gap-4 w-1/3 min-w-[200px]">
+                    <div class="text-xs text-red-500 font-black uppercase"><i class="fa-solid fa-bell-on mr-1 animate-ping"></i> Alarm</div>
+                    <div class="flex-1 bg-gray-800 h-6 rounded-full overflow-hidden border-2 border-red-900 relative">
+                        <div id="alarmProgress" class="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-600 h-full transition-all duration-300" style="width: 0%"></div>
+                        <span id="alarmProgressText" class="absolute inset-0 text-center text-xs font-black text-white mix-blend-difference flex items-center justify-center">0%</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-[10px] text-gray-400 uppercase">Stolen Cargo</div>
+                        <div id="uiTotalScore" class="text-green-400 font-black text-xl">$0</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center text-green-400">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Achievement / Toast Banner Overlay -->
+            <div id="achievementAlert" class="absolute top-16 left-1/2 -translate-x-1/2 bg-yellow-400 text-gray-950 border-2 border-black px-6 py-2 rounded-full font-black text-sm tracking-wide shadow-lg transform -translate-y-20 opacity-0 transition-all duration-500 z-30 flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-lg animate-bounce"></i> <span id="achievementMessage">ALARM ESCAPED!</span>
+            </div>
+
+            <!-- The Core Render Screen canvas -->
+            <div class="flex-1 relative cursor-crosshair overflow-hidden">
+                <canvas id="gameCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+
+                <!-- Help overlay tip -->
+                <div class="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur border border-gray-700 p-3 rounded-xl text-xs max-w-xs space-y-1 pointer-events-none">
+                    <div class="font-bold text-yellow-400">How to Control:</div>
+                    <div><span class="bg-gray-800 px-1 py-0.5 rounded font-mono">WASD / Arrows</span> to move around</div>
+                    <div><span class="bg-gray-800 px-1 py-0.5 rounded font-mono">Space</span> to Pick Up / Drop heavy loot</div>
+                    <div><span class="bg-gray-800 px-1 py-0.5 rounded font-mono">C</span> to Toggle Sneak / Crouch</div>
+                    <div><span class="bg-gray-800 px-1 py-0.5 rounded font-mono">1</span> / <span class="bg-gray-800 px-1 py-0.5 rounded font-mono">2</span> to trigger custom special ability!</div>
+                </div>
+
+                <!-- Ability HUD Overlays -->
+                <div class="absolute bottom-4 right-4 flex gap-3 pointer-events-auto">
+                    <div id="hudAbility1" class="bg-gray-900/90 border-2 border-gray-700 p-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <div class="relative w-12 h-12 bg-gray-950 rounded-xl flex items-center justify-center font-black text-yellow-400 text-xl overflow-hidden border border-gray-800">
+                            <span id="ab1_icon">⚡</span>
+                            <div id="ab1_cooldown" class="absolute bottom-0 left-0 right-0 bg-yellow-500/40 h-0 transition-all duration-100"></div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase">Press [1]</div>
+                            <div id="ab1_name" class="font-extrabold text-xs">SPRINTER</div>
+                        </div>
+                    </div>
+
+                    <div id="hudAbility2" class="bg-gray-900/90 border-2 border-gray-700 p-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <div class="relative w-12 h-12 bg-gray-950 rounded-xl flex items-center justify-center font-black text-yellow-400 text-xl overflow-hidden border border-gray-800">
+                            <span id="ab2_icon">💨</span>
+                            <div id="ab2_cooldown" class="absolute bottom-0 left-0 right-0 bg-yellow-500/40 h-0 transition-all duration-100"></div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase">Press [2]</div>
+                            <div id="ab2_name" class="font-extrabold text-xs">SMOKE</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency countdown indicator -->
+                <div id="lockdownCountdown" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600/90 border-4 border-white text-white px-8 py-4 rounded-3xl shadow-2xl text-center z-20 animate-pulse">
+                    <div class="text-sm font-bold uppercase tracking-widest">POLICE LOCKDOWN IN</div>
+                    <div id="countdownTimer" class="text-6xl font-black">60.0</div>
+                    <div class="text-xs mt-1">Get to the Getaway Van now!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Stats panel -->
+        <div class="w-full lg:w-80 flex flex-col gap-4">
+            <!-- Minimap Container -->
+            <div class="bg-gray-900 border-4 border-gray-800 p-4 rounded-3xl shadow-xl">
+                <h4 class="text-sm font-black text-yellow-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-compass mr-1"></i> Area Minimap</h4>
+                <div class="w-full aspect-square bg-gray-950 rounded-2xl relative overflow-hidden border-2 border-gray-800">
+                    <canvas id="minimapCanvas" class="w-full h-full"></canvas>
+                </div>
+            </div>
+
+            <!-- Chat & Funny Logs panel -->
+            <div class="flex-1 bg-gray-900 border-4 border-gray-800 p-4 rounded-3xl shadow-xl flex flex-col justify-between overflow-hidden">
+                <div>
+                    <h4 class="text-sm font-black text-yellow-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-comment-dots mr-1"></i> Comms Log</h4>
+                    <div id="chatBox" class="h-44 lg:h-64 overflow-y-auto space-y-1 bg-gray-950 p-3 rounded-2xl border border-gray-800 text-xs font-mono">
+                        <div class="text-gray-500 italic">[Radio Static] Connect to map to start chat channel...</div>
+                    </div>
+                </div>
+
+                <!-- Emote Selector Hotbar -->
+                <div class="mt-4">
+                    <div class="text-[10px] uppercase text-gray-400 mb-1 font-bold">Send Emote:</div>
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <button onclick="sendEmote('👍')" class="bg-gray-800 hover:bg-gray-700 py-1.5 rounded-lg text-sm transition">👍</button>
+                        <button onclick="sendEmote('💰')" class="bg-gray-800 hover:bg-gray-700 py-1.5 rounded-lg text-sm transition">💰</button>
+                        <button onclick="sendEmote('🚨')" class="bg-gray-800 hover:bg-gray-700 py-1.5 rounded-lg text-sm transition">🚨</button>
+                        <button onclick="sendEmote('😱')" class="bg-gray-800 hover:bg-gray-700 py-1.5 rounded-lg text-sm transition">😱</button>
+                        <button onclick="sendEmote('👻')" class="bg-gray-800 hover:bg-gray-700 py-1.5 rounded-lg text-sm transition">👻</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPLAY / GAME OVER MODAL -->
+    <div id="gameOverModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-900 border-8 border-red-600 rounded-3xl p-8 max-w-xl w-full text-center shadow-2xl relative transform scale-100 transition-all duration-300">
+            <h2 class="text-4xl text-red-500 font-extrabold uppercase tracking-wider mb-2">HEIST TERMINATED</h2>
+            <p class="text-gray-400 mb-6">The cops arrived and surrounded the facility!</p>
+
+            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-6 mb-6">
+                <div class="text-xs uppercase text-gray-400 tracking-widest">Total Gained Profits</div>
+                <div id="modalTotalScore" class="text-5xl font-black text-green-400 my-2">$0</div>
+            </div>
+
+            <!-- Funny End-game Awards Medals list -->
+            <div class="mb-6">
+                <h3 class="text-yellow-400 font-bold mb-3 uppercase tracking-wider text-sm">🏅 Team Medals & Awards 🏅</h3>
+                <div id="medalsList" class="space-y-2 text-left bg-gray-850 p-4 rounded-xl border border-gray-800">
+                    <!-- Medals populated via script -->
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-black rounded-xl text-lg tracking-wide uppercase transition active:scale-95 shadow-lg">
+                Back to Lobby
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT INLINE - MULTIPLAYER SYSTEM & GAMEPLAY LOGIC -->
+    <script>
+        // CONFIG
+        const SERVER_URL = "ws://localhost:3000";
+
+        // WEB AUDIO ENGINE - Synthesizer sounds
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'pickup') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'drop') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'alarm_tick') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'ability') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                }
+            } catch (e) {
+                console.warn('Audio contextual error', e);
+            }
+        }
+
+        // GLOBALS
+        let socket = null;
+        let localPlayerId = null;
+        let mySelectedColor = '#FF5555';
+        let currentMapData = null;
+        let currentPlayersData = {};
+        let keysPressed = {};
+        let serverTimeOffset = 0;
+        let performanceBuffer = [];
+        let screenShakeAmount = 0;
+
+        // Canvas Rendering States
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const miniCanvas = document.getElementById('minimapCanvas');
+        const miniCtx = miniCanvas.getContext('2d');
+
+        // Smooth Camera Coordinates
+        let cameraX = 0;
+        let cameraY = 0;
+
+        // Setup Responsive Canvas Drawing sizing
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Lobby Color Select UI handler
+        function selectColor(colorHex, btnElement) {
+            mySelectedColor = colorHex;
+            document.querySelectorAll('.color-btn').forEach(b => {
+                b.classList.remove('border-white');
+                b.classList.add('border-transparent');
+            });
+            btnElement.classList.remove('border-transparent');
+            btnElement.classList.add('border-white');
+        }
+
+        // Setup WS listeners
+        document.getElementById('btnJoin').addEventListener('click', () => {
+            const nickname = document.getElementById('nicknameInput').value;
+            const roomId = document.getElementById('roomInput').value;
+
+            socket = new WebSocket(SERVER_URL);
+
+            socket.onopen = () => {
+                socket.send(JSON.stringify({
+                    type: 'join',
+                    roomId: roomId,
+                    nickname: nickname,
+                    characterColor: mySelectedColor
+                }));
+            };
+
+            socket.onmessage = (event) => {
+                const packet = JSON.parse(event.data);
+                handleServerPacket(packet);
+            };
+
+            socket.onclose = () => {
+                addToChatLog('📡 Left server or connection interrupted.');
+            };
+
+            socket.onerror = (err) => {
+                console.error('Socket error: ', err);
+                addToChatLog('❌ Unable to reach Tiny Heist backend on ' + SERVER_URL);
+            };
+
+            // Switch Join/Ready button style
+            document.getElementById('btnJoin').innerText = "✓ CREW IS READY";
+            document.getElementById('btnJoin').classList.add('bg-blue-600', 'from-blue-600', 'to-blue-700');
+            document.getElementById('btnJoin').disabled = true;
+
+            // Trigger audio permission
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        document.getElementById('btnStartGame').addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'start_game' }));
+            }
+        });
+
+        // Track Keyboard inputs for real-time motion and abilities
+        window.addEventListener('keydown', (e) => {
+            keysPressed[e.key.toLowerCase()] = true;
+            
+            // Interaction trigger
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: 'interact' }));
+                }
+            }
+
+            // Custom Emote Bindings (1, 2 for abilities)
+            if (e.key === '1') {
+                triggerAbility(0);
+            }
+            if (e.key === '2') {
+                triggerAbility(1);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        function triggerAbility(slotIndex) {
+            const me = currentPlayersData[localPlayerId];
+            if (!me || !me.abilities) return;
+            const ability = me.abilities[slotIndex];
+            if (!ability) return;
+
+            // Calculate current heading angle for vector teleport/dashing functions
+            let heading = 0;
+            if (keysPressed['w'] || keysPressed['arrowup']) heading = -Math.PI/2;
+            if (keysPressed['s'] || keysPressed['arrowdown']) heading = Math.PI/2;
+            if (keysPressed['a'] || keysPressed['arrowleft']) heading = Math.PI;
+            if (keysPressed['d'] || keysPressed['arrowright']) heading = 0;
+
+            socket.send(JSON.stringify({
+                type: 'use_ability',
+                payload: {
+                    ability: ability,
+                    angle: heading
+                }
+            }));
+        }
+
+        // Process packets from the Node engine
+        function handleServerPacket(packet) {
+            switch (packet.type) {
+                case 'welcome':
+                    localPlayerId = packet.payload.playerId;
+                    currentPlayersData = packet.payload.players;
+                    updateLobbyView();
+                    // Enable start button if they are first (host)
+                    const sortedIds = Object.keys(currentPlayersData);
+                    if (sortedIds[0] === localPlayerId) {
+                        document.getElementById('btnStartGame').disabled = false;
+                        document.getElementById('btnStartGame').classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    addToChatLog('👋 Welcome Sneaker! You connected successfully.');
+                    break;
+
+                case 'player_joined':
+                    currentPlayersData[packet.payload.player.id] = packet.payload.player;
+                    updateLobbyView();
+                    addToChatLog(`👥 ${packet.payload.player.nickname} joined the room!`);
+                    break;
+
+                case 'player_ready':
+                    if (currentPlayersData[packet.payload.playerId]) {
+                        currentPlayersData[packet.payload.playerId].ready = packet.payload.ready;
+                        updateLobbyView();
+                    }
+                    break;
+
+                case 'game_started':
+                    currentMapData = packet.payload.map;
+                    currentPlayersData = packet.payload.players;
+                    
+                    // Transition View screens
+                    document.getElementById('lobbyContainer').classList.add('hidden');
+                    document.getElementById('gameContainer').classList.remove('hidden');
+                    
+                    // Populate Map HUD info
+                    const mapName = currentMapData.locationType.toUpperCase().replace('_', ' ');
+                    document.getElementById('mapLocationLabel').innerText = mapName;
+                    
+                    // Setup Ability Slot UI labels
+                    const me = currentPlayersData[localPlayerId];
+                    if (me && me.abilities) {
+                        document.getElementById('ab1_name').innerText = me.abilities[0];
+                        document.getElementById('ab2_name').innerText = me.abilities[1] || 'NONE';
+                    }
+
+                    addToChatLog('🚀 THE RUN IS ON! Grab loot, avoid the red security lights!');
+                    break;
+
+                case 'state_update':
+                    currentMapData = packet.payload.map;
+                    currentPlayersData = packet.payload.players;
+                    
+                    // Update global elements
+                    document.getElementById('uiTotalScore').innerText = `$${currentMapData.alarm >= 100 ? '???' : currentMapData.alarmPhase}`; 
+                    updateGameUI();
+                    break;
+
+                case 'player_emote':
+                    const p = currentPlayersData[packet.payload.playerId];
+                    if (p) {
+                        p.emote = packet.payload.emoji;
+                        p.emoteTimer = 1500; // Display for 1.5 seconds
+                        addToChatLog(`💬 [${p.nickname}]: ${packet.payload.emoji}`);
+                    }
+                    break;
+
+                case 'ability_triggered':
+                    const user = currentPlayersData[packet.payload.playerId];
+                    if (user) {
+                        addToChatLog(`🔥 ${user.nickname} activated ability: ${packet.payload.ability}!`);
+                        playSound('ability');
+                        applyScreenShake(6);
+                    }
+                    break;
+
+                case 'achievement':
+                    triggerAchievementPopup(packet.payload.text);
+                    playSound('pickup');
+                    break;
+
+                case 'game_over':
+                    showGameOverModal(packet.payload);
+                    break;
+
+                case 'player_left':
+                    if (currentPlayersData[packet.payload.playerId]) {
+                        addToChatLog(`❌ ${currentPlayersData[packet.payload.playerId].nickname} disconnected.`);
+                        delete currentPlayersData[packet.payload.playerId];
+                        updateLobbyView();
+                    }
+                    break;
+
+                case 'chat_notice':
+                    addToChatLog(`📢 ${packet.payload.text}`);
+                    break;
+            }
+        }
+
+        // GUI Updates
+        function updateLobbyView() {
+            const listEl = document.getElementById('lobbyPlayersList');
+            listEl.innerHTML = '';
+
+            let count = 0;
+            for (const id in currentPlayersData) {
+                count++;
+                const p = currentPlayersData[id];
+                const isMe = id === localPlayerId;
+
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-gray-900 border border-gray-800 px-4 py-3 rounded-xl";
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full" style="background-color: ${p.color}"></div>
+                        <span class="font-bold text-sm ${isMe ? 'text-yellow-400 font-black' : 'text-gray-300'}">${p.nickname} ${isMe ? '(You)' : ''}</span>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 font-bold border border-green-500/40">Ready ✓</span>
+                `;
+                listEl.appendChild(item);
+            }
+
+            document.getElementById('playerCounter').innerText = `${count}/8 Thieves`;
+        }
+
+        function updateGameUI() {
+            if (!currentMapData) return;
+
+            // Alarm updates
+            const alarmVal = Math.floor(currentMapData.alarm);
+            document.getElementById('alarmProgress').style.width = `${alarmVal}%`;
+            document.getElementById('alarmProgressText').innerText = `${alarmVal}%`;
+
+            // Score Counter update
+            const scoreTotal = Object.values(currentPlayersData).reduce((sum, p) => sum + (p.score || 0), 0);
+            document.getElementById('uiTotalScore').innerText = `$${scoreTotal}`;
+
+            // Lockdown Alert overlay
+            if (currentMapData.policeCountdown > 0) {
+                document.getElementById('lockdownCountdown').classList.remove('hidden');
+                document.getElementById('countdownTimer').innerText = currentMapData.policeCountdown.toFixed(1);
+                
+                // Pulsate alarm ticketing sound
+                if (Math.floor(Date.now() / 1000) % 2 === 0) {
+                    playSound('alarm_tick');
+                }
+            } else {
+                document.getElementById('lockdownCountdown').classList.add('hidden');
+            }
+        }
+
+        function showGameOverModal(data) {
+            document.getElementById('modalTotalScore').innerText = `$${data.score}`;
+            const medalsContainer = document.getElementById('medalsList');
+            medalsContainer.innerHTML = '';
+
+            data.medals.forEach(m => {
+                const mEl = document.createElement('div');
+                mEl.className = "flex justify-between items-center border-b border-gray-800 pb-2 mb-2 text-sm";
+                mEl.innerHTML = `
+                    <div>
+                        <div class="font-bold text-yellow-300">${m.title}</div>
+                        <div class="text-xs text-gray-400">${m.reason}</div>
+                    </div>
+                    <span class="bg-gray-900 px-3 py-1 rounded-lg text-white font-mono text-xs border border-gray-700">${m.player}</span>
+                `;
+                medalsContainer.appendChild(mEl);
+            });
+
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        function triggerAchievementPopup(text) {
+            const popup = document.getElementById('achievementAlert');
+            document.getElementById('achievementMessage').innerText = text;
+            popup.classList.remove('-translate-y-20', 'opacity-0');
+            popup.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                popup.classList.remove('translate-y-0', 'opacity-100');
+                popup.classList.add('-translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        function addToChatLog(msg) {
+            const chat = document.getElementById('chatBox');
+            const item = document.createElement('div');
+            item.className = "py-1 border-b border-gray-900 last:border-0";
+            item.innerHTML = `<span class="text-gray-500 font-sans">[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> ${msg}`;
+            chat.appendChild(item);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function sendEmote(emoji) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'emote', payload: emoji }));
+            }
+        }
+
+        function applyScreenShake(amount) {
+            screenShakeAmount = amount;
+        }
+
+        // CLIENT INTERPOLATION & MOTION LOOP
+        let lastUpdateTime = Date.now();
+
+        function clientLoop() {
+            requestAnimationFrame(clientLoop);
+            const now = Date.now();
+            const dt = (now - lastUpdateTime) / 1000;
+            lastUpdateTime = now;
+
+            // Apply dampening screenshake
+            if (screenShakeAmount > 0) {
+                screenShakeAmount -= dt * 12;
+            }
+
+            // 1. Core Physics Prediction input for the LOCAL player
+            if (currentMapData && currentPlayersData[localPlayerId]) {
+                const localPlayer = currentPlayersData[localPlayerId];
+                
+                let moveX = 0;
+                let moveY = 0;
+
+                if (keysPressed['w'] || keysPressed['arrowup']) moveY = -1;
+                if (keysPressed['s'] || keysPressed['arrowdown']) moveY = 1;
+                if (keysPressed['a'] || keysPressed['arrowleft']) moveX = -1;
+                if (keysPressed['d'] || keysPressed['arrowright']) moveX = 1;
+
+                // Sneak / crouch modifier
+                const isCrouching = keysPressed['c'];
+
+                if (moveX !== 0 || moveY !== 0) {
+                    // Calculate speed factor
+                    let speed = 4.5;
+                    if (isCrouching) speed = 2.0;
+
+                    // Apply sprinter ability active speed factor
+                    if (localPlayer.cooldowns && localPlayer.cooldowns['SPRINTER_boost'] > 0) {
+                        speed += 3.5;
+                    }
+
+                    // Move local coordinates immediately (client-side prediction)
+                    const length = Math.hypot(moveX, moveY);
+                    localPlayer.x += (moveX / length) * speed;
+                    localPlayer.y += (moveY / length) * speed;
+
+                    // Obstacle bounding collision resolver
+                    currentMapData.obstacles.forEach(obs => {
+                        // Check box intersection
+                        const pad = 15; // Player bounding radius
+                        const px = localPlayer.x;
+                        const py = localPlayer.y;
+
+                        if (px + pad > obs.x && px - pad < obs.x + obs.w && py + pad > obs.y && py - pad < obs.y + obs.h) {
+                            // Resolve collision (sliding)
+                            const overlapX = Math.min(px + pad - obs.x, obs.x + obs.w - (px - pad));
+                            const overlapY = Math.min(py + pad - obs.y, obs.y + obs.h - (py - pad));
+
+                            if (overlapX < overlapY) {
+                                localPlayer.x += (px > obs.x + obs.w / 2) ? overlapX : -overlapX;
+                            } else {
+                                localPlayer.y += (py > obs.y + obs.h / 2) ? overlapY : -overlapY;
+                            }
+                        }
+                    });
+
+                    // Keep inside map bounds
+                    localPlayer.x = Math.max(50, Math.min(currentMapData.width - 50, localPlayer.x));
+                    localPlayer.y = Math.max(50, Math.min(currentMapData.height - 50, localPlayer.y));
+
+                    // Send position packet immediately to Server authority
+                    socket.send(JSON.stringify({
+                        type: 'input',
+                        payload: {
+                            x: localPlayer.x,
+                            y: localPlayer.y,
+                            crouch: isCrouching
+                        }
+                    }));
+                }
+            }
+
+            // Render Frame
+            renderGame();
+            renderMinimap();
+        }
+
+        // CORE RENDER CANVAS ENGINE
+        function renderGame() {
+            if (!currentMapData || !currentPlayersData[localPlayerId]) return;
+
+            // Apply camera easing/smoothing tracking target player
+            const target = currentPlayersData[localPlayerId];
+            cameraX += (target.x - canvas.width / 2 - cameraX) * 0.1;
+            cameraY += (target.y - canvas.height / 2 - cameraY) * 0.1;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            // Apply dynamic screenshake translation offsets
+            if (screenShakeAmount > 0) {
+                const shakeX = (Math.random() - 0.5) * screenShakeAmount;
+                const shakeY = (Math.random() - 0.5) * screenShakeAmount;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            ctx.translate(-cameraX, -cameraY);
+
+            // 1. Draw Map Flooring styling based on map theme
+            const locType = currentMapData.locationType;
+            let floorColor = '#111827'; // Lemonade
+            let gridColor = '#1f2937';
+
+            if (locType === 'gas_station') {
+                floorColor = '#0b0c10';
+                gridColor = '#1f2833';
+            } else if (locType === 'moon') {
+                floorColor = '#14141e';
+                gridColor = '#212130';
+            }
+
+            ctx.fillStyle = floorColor;
+            ctx.fillRect(0, 0, currentMapData.width, currentMapData.height);
+
+            // Grid Pattern
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 1;
+            const step = 80;
+            for (let x = 0; x < currentMapData.width; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, currentMapData.height); ctx.stroke();
+            }
+            for (let y = 0; y < currentMapData.height; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(currentMapData.width, y); ctx.stroke();
+            }
+
+            // Draw Extraction / Getaway Zone marker
+            currentMapData.extractionZones.forEach(zone => {
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 6]);
+                ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+                ctx.setLineDash([]);
+                
+                // Draw yellow/green striped escape fill
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+                ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+
+                // Safe zone indicator label
+                ctx.fillStyle = '#22c55e';
+                ctx.font = 'bold 14px Quicksand';
+                ctx.fillText(`🚐 GETAWAY DROP-OFF`, zone.x + 10, zone.y + 30);
+            });
+
+            // 2. Obstacles / Walls / Props Rendering
+            currentMapData.obstacles.forEach(obs => {
+                let fill = '#374151';
+                let stroke = '#4b5563';
+
+                if (obs.type === 'fence') {
+                    fill = '#854d0e'; stroke = '#a16207';
+                } else if (obs.type === 'aisle') {
+                    fill = '#1e293b'; stroke = '#334155';
+                } else if (obs.type === 'glass') {
+                    fill = 'rgba(56, 189, 248, 0.2)'; stroke = '#38bdf8';
+                }
+
+                ctx.fillStyle = fill;
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+            });
+
+            // 3. Loot Objects Rendering
+            currentMapData.loot.forEach(item => {
+                if (item.carriedBy) return; // Hidden, carried in pocket
+
+                // Pulse glow glow aura around rare/large artifacts
+                const pulse = 1 + Math.sin(Date.now() / 200) * 0.15;
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.size * pulse, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'giant_diamond' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(234, 179, 8, 0.3)';
+                ctx.fill();
+
+                // Draw solid center loot item icon/circle
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'giant_diamond' ? '#38bdf8' : '#eab308';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Small dollar bag tag
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 11px Quicksand';
+                ctx.textAlign = 'center';
+                ctx.fillText('$', item.x, item.y + 4);
+                
+                // Text label overhead
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '9px Quicksand';
+                ctx.fillText(item.name, item.x, item.y - item.size - 5);
+            });
+
+            // 4. Cameras vision cones sweeping rendering
+            currentMapData.cameras.forEach(cam => {
+                if (cam.disabled) return; // Avoid drawing disabled camera security cones
+
+                ctx.save();
+                ctx.translate(cam.x, cam.y);
+                const rAngle = cam.angle * (Math.PI / 180);
+                
+                // Draw rotating red light beam matching security sweep sector range
+                const fovRad = (cam.sweep * Math.PI) / 180;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, cam.range, rAngle - fovRad/2, rAngle + fovRad/2);
+                ctx.closePath();
+                
+                // Dynamic flashing warning colors based on alarm thresholds
+                const beamColor = currentMapData.alarm > 75 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.12)';
+                ctx.fillStyle = beamColor;
+                ctx.fill();
+                ctx.restore();
+
+                // Base anchor body dot
+                ctx.beginPath();
+                ctx.arc(cam.x, cam.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+            });
+
+            // 5. Draw Guard AI paths and vision Cones
+            currentMapData.guards.forEach(g => {
+                if (g.frozenTimer && g.frozenTimer > 0) {
+                    // Render status tag as frozen ice cube
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = '24px Arial';
+                    ctx.fillText('❄️', g.x, g.y - 20);
+                }
+
+                // Vision cone forward facing path
+                const headingRad = Math.atan2(g.targetY - g.y, g.targetX - g.x);
+                ctx.save();
+                ctx.translate(g.x, g.y);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, 180, headingRad - Math.PI/4, headingRad + Math.PI/4);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(234, 88, 12, 0.1)';
+                ctx.fill();
+                ctx.restore();
+
+                // Guard Body Dot rendering
+                ctx.beginPath();
+                ctx.arc(g.x, g.y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = '#dc2626'; // Red Security Uniform
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Hat details
+                ctx.fillStyle = '#111827';
+                ctx.fillRect(g.x - 12, g.y - 8, 24, 6);
+
+                // State indicator bubble overhead
+                if (g.state === 'chase') {
+                    ctx.fillStyle = '#f97316';
+                    ctx.font = 'bold 12px Quicksand';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⚡ CHASE!', g.x, g.y - 24);
+                }
+            });
+
+            // 6. Draw Multi-players entities
+            for (const id in currentPlayersData) {
+                const p = currentPlayersData[id];
+
+                // If ghost state active and is opponent/partner, draw transparently
+                const isGhost = p.cooldowns && p.cooldowns['GHOST_active'] > 0;
+                if (isGhost) {
+                    ctx.globalAlpha = 0.35;
+                }
+
+                // Draw shadow indicator first
+                ctx.beginPath();
+                ctx.arc(p.x, p.y + 8, p.crouching ? 10 : 12, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fill();
+
+                // Character core circle shape
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.crouching ? 12 : 16, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = p.id === localPlayerId ? 4 : 2; // highlight own player with thicker ring
+                ctx.stroke();
+
+                // Face mask detailing sneakiness
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(p.x - 10, p.y - 4, 20, 5); // mask strip
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(p.x - 4, p.y - 2, 2, 0, Math.PI * 2); // left eye
+                ctx.arc(p.x + 4, p.y - 2, 2, 0, Math.PI * 2); // right eye
+                ctx.fill();
+
+                // Overhead nameplate tag
+                ctx.fillStyle = p.id === localPlayerId ? '#facc15' : '#ffffff';
+                ctx.font = 'bold 11px Quicksand';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.nickname, p.x, p.y - 28);
+
+                // Carrying Cargo stack height line indicators
+                if (p.carrying && p.carrying.length > 0) {
+                    p.carrying.forEach((cargo, idx) => {
+                        ctx.fillStyle = '#eab308';
+                        ctx.fillRect(p.x - 10, p.y - (38 + idx * 8), 20, 6);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.strokeRect(p.x - 10, p.y - (38 + idx * 8), 20, 6);
+                    });
+                }
+
+                // Play active Emote Bubble tags if timers exist
+                if (p.emote && p.emoteTimer > 0) {
+                    p.emoteTimer -= 20; // tick subtraction approximation frame bound
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(p.x + 18, p.y - 28, 12, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(p.emote, p.x + 18, p.y - 24);
+                }
+
+                // Reset transparency global values
+                ctx.globalAlpha = 1.0;
+            }
+
+            ctx.restore();
+        }
+
+        // RED RAW MINI MAP RENDERER
+        function renderMinimap() {
+            if (!currentMapData || !currentPlayersData[localPlayerId]) return;
+
+            // Clear minimap canvas bounds
+            miniCtx.fillStyle = '#0b0c10';
+            miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
+
+            const scaleX = miniCanvas.width / currentMapData.width;
+            const scaleY = miniCanvas.height / currentMapData.height;
+
+            // 1. Draw solid walls as gray blocks
+            miniCtx.fillStyle = '#4b5563';
+            currentMapData.obstacles.forEach(obs => {
+                miniCtx.fillRect(obs.x * scaleX, obs.y * scaleY, obs.w * scaleX, obs.h * scaleY);
+            });
+
+            // 2. Draw Escape extraction zone as bright green
+            miniCtx.fillStyle = 'rgba(34, 197, 94, 0.4)';
+            currentMapData.extractionZones.forEach(zone => {
+                miniCtx.fillRect(zone.x * scaleX, zone.y * scaleY, zone.w * scaleX, zone.h * scaleY);
+            });
+
+            // 3. Draw Guards as orange hazard indicator flags
+            miniCtx.fillStyle = '#ea580c';
+            currentMapData.guards.forEach(g => {
+                miniCtx.beginPath();
+                miniCtx.arc(g.x * scaleX, g.y * scaleY, 4, 0, Math.PI * 2);
+                miniCtx.fill();
+            });
+
+            // 4. Draw Other players
+            for (const id in currentPlayersData) {
+                const p = currentPlayersData[id];
+                miniCtx.fillStyle = p.color;
+                miniCtx.beginPath();
+                miniCtx.arc(p.x * scaleX, p.y * scaleY, id === localPlayerId ? 5 : 3.5, 0, Math.PI * 2);
+                miniCtx.fill();
+
+                // Draw target halo marker around self
+                if (id === localPlayerId) {
+                    miniCtx.strokeStyle = '#ffffff';
+                    miniCtx.lineWidth = 1;
+                    miniCtx.stroke();
+                }
+            }
+        }
+
+        // Start client tick rendering update loops
+        clientLoop();
+    </script>
+</body>
+</html>
+```
+eof
+
+### Step-by-Step Instructions to Play:
+
+1. **Save files:** Put the code blocks into `package.json`, `server.js`, and `index.html` respectively in the same directory.
+2. **Install dependencies:** Run:
+   ```bash
+   npm install
+   ```
+3. **Launch local Node.js Server:** Run:
+   ```bash
+   node server.js
